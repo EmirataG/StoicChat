@@ -1,0 +1,52 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [uuidOssp(map: "uuid-ossp")]
+}
+
+model User {
+  id            String    @id @unique
+  username      String    @unique
+  email         String    @unique
+  messages_sent Message[] @relation("messageSender")
+  requests_sent Request[] @relation("requestSender")
+  requests_got  Request[] @relation("requestRecipient")
+  created_at    DateTime  @default(now())
+  chat_ids      String[]
+}
+
+model Request {
+  id           String   @id @default(dbgenerated("uuid_generate_v4()"))
+  sender_id    String
+  recipient_id String
+  sender       User     @relation("requestSender", fields: [sender_id], references: [id])
+  recipient    User     @relation("requestRecipient", fields: [recipient_id], references: [id])
+  content      String
+  created_at   DateTime @default(now())
+}
+
+model Chat {
+  id       String    @id @default(dbgenerated("uuid_generate_v4()"))
+  messages Message[] @relation("chat")
+}
+
+model Message {
+  id         String   @id @default(dbgenerated("uuid_generate_v4()"))
+  content    String
+  sender_id  String
+  sender     User     @relation("messageSender", fields: [sender_id], references: [id])
+  chat_id    String
+  chat       Chat     @relation("chat", fields: [chat_id], references: [id])
+  created_at DateTime @default(now())
+}
